@@ -146,6 +146,14 @@ export default function Room() {
     setTimeout(() => setSkipCooldown(false), 2000);
   };
 
+  const chatBoxRef = useRef(null);
+
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
   if (!isNicknameSet) {
     return (
       <div style={{ padding: 20 }}>
@@ -171,17 +179,23 @@ export default function Room() {
   }
 
   return (
-    <div style={{ 
-       padding: "3vw",
-      width: "100vw",
+    <div
+      style={{
+        padding: "3vw",
+        width: "100vw",
         height: "100vh",
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Segoe UI', sans-serif",
-        color: "#333"}}>
+        color: "#333",
+      }}
+    >
       <h2>방 ID: {roomId}</h2>
       <div>현재 인원: {usersCount}명</div>
-      <button onClick={() => setShowUserList(!showUserList)} style={{ marginTop: 10 }}>
+      <button
+        onClick={() => setShowUserList(!showUserList)}
+        style={{ marginTop: 10 }}
+      >
         {showUserList ? "인원 닫기" : "현재 인원 보기"}
       </button>
 
@@ -202,7 +216,10 @@ export default function Room() {
             onChange={onChangeVideoInput}
             style={{ width: "60%", padding: 5, fontSize: 16 }}
           />
-          <button onClick={onChangeVideo} style={{ marginLeft: 10, padding: "6px 12px", fontSize: 16 }}>
+          <button
+            onClick={onChangeVideo}
+            style={{ marginLeft: 10, padding: "6px 12px", fontSize: 16 }}
+          >
             영상 변경
           </button>
         </div>
@@ -239,13 +256,33 @@ export default function Room() {
         <button onClick={() => onSkip("backward")} disabled={skipCooldown}>
           ⏪ 뒤로 5초 ({skipCounts.backward})
         </button>
-        <button onClick={() => onSkip("forward")} disabled={skipCooldown} style={{ marginLeft: 10 }}>
+        <button
+          onClick={() => onSkip("forward")}
+          disabled={skipCooldown}
+          style={{ marginLeft: 10 }}
+        >
           앞으로 5초 ⏩ ({skipCounts.forward})
         </button>
       </div>
-      <div style={{ marginTop: 20, border: "1px solid #ccc", padding: 10, maxHeight: 200, overflowY: "auto" }}>
+
+      <div
+        style={{
+          marginTop: 20,
+          border: "1px solid #ccc",
+          padding: 10,
+          maxHeight: 200,
+          overflowY: "auto",
+        }}
+      >
         <h3>채팅</h3>
-        <div style={{ maxHeight: 140, overflowY: "auto", marginBottom: 10 }}>
+        <div
+          ref={chatBoxRef}
+          style={{
+            maxHeight: 140,
+            overflowY: "auto",
+            marginBottom: 10,
+          }}
+        >
           {chatMessages.map((msg, i) => (
             <div key={i} style={{ marginBottom: 4 }}>
               <strong>{msg.nickname}</strong> | {msg.message}
@@ -263,11 +300,13 @@ export default function Room() {
           style={{ width: "80%", padding: 5, fontSize: 14 }}
           maxLength={10}
         />
-        <button onClick={sendChatMessage} style={{ padding: "5px 10px", marginLeft: 8 }}>
+        <button
+          onClick={sendChatMessage}
+          style={{ padding: "5px 10px", marginLeft: 8 }}
+        >
           전송
         </button>
       </div>
-
     </div>
   );
 }
