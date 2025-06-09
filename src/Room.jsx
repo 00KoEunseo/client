@@ -80,6 +80,11 @@ export default function Room() {
       setChatMessages((msgs) => [...msgs, { nickname, message }]);
     });
 
+    socket.on("room_closed", () => {
+    alert("방장이 퇴장하여 방이 종료되었습니다.");
+    navigate("/");
+    });
+
     return () => {
       socket.off("room_data");
       socket.off("video_changed");
@@ -89,6 +94,7 @@ export default function Room() {
       socket.off("skip_counts_update");
       socket.off("user_list_update");
       socket.off("chat_message");
+      socket.off("room_closed");
     };
   }, [roomId, isNicknameSet, nickname]);
 
