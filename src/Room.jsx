@@ -1,25 +1,31 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import socket from "./socket";
 import YouTube from "react-youtube";
 
 export default function Room() {
   const { roomId } = useParams();
+  const navigate = useNavigate();
 
   const playerRef = useRef(null);
-  const [videoId, setVideoId] = useState("");
-  const [isHost, setIsHost] = useState(false);
-  const [newVideoInput, setNewVideoInput] = useState("");
-  const [skipCounts, setSkipCounts] = useState({ forward: 0, backward: 0 });
-  const [skipCooldown, setSkipCooldown] = useState(false);
+
   const [nickname, setNickname] = useState("");
   const [isNicknameSet, setIsNicknameSet] = useState(false);
+
+  const [videoId, setVideoId] = useState("");
+  const [isHost, setIsHost] = useState(false);
+
+  const [skipCounts, setSkipCounts] = useState({ forward: 0, backward: 0 });
+  const [skipCooldown, setSkipCooldown] = useState(false);
+
   const [usersCount, setUsersCount] = useState(0);
   const [userList, setUserList] = useState([]);
   const [showUserList, setShowUserList] = useState(false);
 
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+
+  const chatBoxRef = useRef(null);
 
   useEffect(() => {
     if (!isNicknameSet) return;
@@ -81,8 +87,13 @@ export default function Room() {
     });
 
     socket.on("room_closed", () => {
-    alert("방장이 퇴장하여 방이 종료되었습니다.");
-    navigate("/");
+      alert("방장이 퇴장하여 방이 종료되었습니다.");
+      navigate("/");
+    });
+
+    socket.on("request_host_time", () => {
+      const currentTime = playerRef.current?.getCurrentTime() || 0;
+      socket.emit("host_time_response", { roomId, currentTime });
     });
 
     return () => {
@@ -95,8 +106,33 @@ export default function Room() {
       socket.off("user_list_update");
       socket.off("chat_message");
       socket.off("room_closed");
+      socket.off("request_host_time");
     };
-  }, [roomId, isNicknameSet, nickname]);
+  }, [isHost, roomId, isNicknameSet, nickname, navigate]);
+
+  // 호스트의 currentTime 업데이트 인터벌
+  useEffect(() => {
+    let intervalId;
+
+    if (isHost) {
+      intervalId = setInterval(() => {
+        if (playerRef.current) {
+          const currentTime = playerRef.current.getCurrentTime();
+          socket.emit("host_current_time_update", { roomId, currentTime });
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isHost, roomId]);
+
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
 
   const extractVideoId = (urlOrId) => {
     try {
@@ -114,6 +150,7 @@ export default function Room() {
   };
 
   const onChangeVideoInput = (e) => setNewVideoInput(e.target.value);
+  const [newVideoInput, setNewVideoInput] = useState("");
 
   const onChangeVideo = () => {
     if (!newVideoInput) return;
@@ -145,14 +182,6 @@ export default function Room() {
     setSkipCooldown(true);
     setTimeout(() => setSkipCooldown(false), 2000);
   };
-
-  const chatBoxRef = useRef(null);
-
-  useEffect(() => {
-    if (chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
 
   if (!isNicknameSet) {
     return (
@@ -241,7 +270,7 @@ export default function Room() {
           onPlay={onPlay}
           onPause={onPause}
           onStateChange={(e) => {
-            if (e.data === 1 || e.data === 2) return; // 플레이/일시정지 무시
+            if (e.data === 1 || e.data === 2) return;
             if (isHost) {
               const time = e.target.getCurrentTime();
               socket.emit("video_seek", { roomId, time });
@@ -254,14 +283,14 @@ export default function Room() {
 
       <div style={{ marginTop: 15 }}>
         <button onClick={() => onSkip("backward")} disabled={skipCooldown}>
-          ⏪ 뒤로 5초 ({skipCounts.backward})
+          ⏪ 뒤로 10초 ({skipCounts.backward})
         </button>
         <button
           onClick={() => onSkip("forward")}
           disabled={skipCooldown}
           style={{ marginLeft: 10 }}
         >
-          앞으로 5초 ⏩ ({skipCounts.forward})
+          앞으로 10초 ⏩ ({skipCounts.forward})
         </button>
       </div>
 
