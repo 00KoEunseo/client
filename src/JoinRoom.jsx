@@ -44,8 +44,12 @@ export default function JoinRoom() {
 
   return (
     <div>
-      <h2>방 참가하기</h2>
 
+      <div style={{ marginTop: "20px" }}>
+        <button onClick={() => navigate("/")}>홈으로</button>
+      </div>
+
+      <h2>방 참가하기</h2>
       {/* 직접 입력 */}
       <input
         type="text"

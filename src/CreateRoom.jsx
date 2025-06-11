@@ -58,6 +58,11 @@ export default function CreateRoom() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <button onClick={handleCreate}>방 생성</button>
+
+      <div style={{ marginTop: "20px" }}>
+        <button onClick={() => navigate("/")}>홈으로</button>
+      </div>
+      
     </div>
   );
 }

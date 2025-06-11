@@ -171,6 +171,11 @@ export default function Room() {
     }
   };
 
+  // 인원 갱신
+  const outRoom = () => {
+    socket.emit("disconnect_button");
+  };
+
   // 채팅 메시지 전송
   const sendChatMessage = () => {
     if (!chatInput.trim()) return;
@@ -399,6 +404,15 @@ export default function Room() {
           전송
         </button>
       </div>
+
+      <div style={{ marginTop: "20px" }}>
+        <button onClick={() =>{
+          navigate("/");
+          outRoom();
+        }
+          }>나가기</button>
+      </div>
+
     </div>
   );
 }
