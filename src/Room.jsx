@@ -35,6 +35,12 @@ export default function Room() {
 
   const [newVideoInput, setNewVideoInput] = useState("");
 
+  const [recommendQueue, setRecommendQueue] = useState([]);
+  const [recommendInput, setRecommendInput] = useState("");
+
+  const [boreVoteCount, setBoreVoteCount] = useState(0);
+  const [hasVotedBore, setHasVotedBore] = useState(false);
+
   // 1. 방 정보 요청 (방 잠금 여부 등)
   useEffect(() => {
     socket.emit("get_room_info", { roomId });
@@ -75,6 +81,7 @@ export default function Room() {
         if (data.isPlaying) playerRef.current.playVideo();
         else playerRef.current.pauseVideo();
       }
+      setRecommendQueue(data.recommendQueue || []);
     });
 
     socket.on("error", ({ message }) => {
@@ -115,6 +122,10 @@ export default function Room() {
       setChatMessages((msgs) => [...msgs, { nickname, message }]);
     });
 
+    socket.on("recommend_queue_updated", (queue) => {
+      setRecommendQueue(queue);
+    });
+
     socket.on("room_closed", () => {
       alert("방장이 퇴장하여 방이 종료되었습니다.");
       navigate("/");
@@ -123,6 +134,13 @@ export default function Room() {
     socket.on("request_host_time", () => {
       const currentTime = playerRef.current?.getCurrentTime() || 0;
       socket.emit("host_time_response", { roomId, currentTime });
+    });
+
+    socket.on("bore_vote_update", (count) => {
+      setBoreVoteCount(count);
+      if (count === 0) {
+        setHasVotedBore(false); // 투표 초기화 시 버튼 다시 활성화
+      }
     });
 
     return () => {
@@ -137,6 +155,8 @@ export default function Room() {
       socket.off("chat_message");
       socket.off("room_closed");
       socket.off("request_host_time");
+      socket.off("recommend_queue_updated");
+      socket.off("bore_vote_update");
     };
   }, [isNicknameSet, isLocked, isHost, passwordEntered, roomId, nickname, roomPassword, navigate]);
 
@@ -176,6 +196,24 @@ export default function Room() {
     socket.emit("disconnect_button");
   };
 
+  //추천영상 등록 함수
+  const onAddRecommendation = () => {
+  const newId = extractVideoId(recommendInput);
+  if (!newId) {
+    alert("유효한 유튜브 영상 URL 또는 ID를 입력하세요.");
+    return;
+  }
+
+  socket.emit("add_recommend_video", { roomId, videoId: newId });
+  setRecommendInput("");
+};
+
+//호스트영상 종료시 다음추천영상 재생함수
+const onVideoEnd = () => {
+  if (!isHost) return;
+  socket.emit("video_ended", { roomId });
+};
+
   // 채팅 메시지 전송
   const sendChatMessage = () => {
     if (!chatInput.trim()) return;
@@ -185,6 +223,8 @@ export default function Room() {
 
   // 영상 변경 입력 처리
   const onChangeVideoInput = (e) => setNewVideoInput(e.target.value);
+
+  const onChangeRecommendInput = (e) => setRecommendInput(e.target.value);
 
   // 영상 변경 요청 (호스트만)
   const onChangeVideo = () => {
@@ -220,6 +260,13 @@ export default function Room() {
     socket.emit("skip_request", { roomId, direction });
     setSkipCooldown(true);
     setTimeout(() => setSkipCooldown(false), 2000);
+  };
+
+  //지루한 영상 스킵 투표!
+  const handleBoreVote = () => {
+    if (hasVotedBore) return;
+    socket.emit("bore_vote", { roomId });
+    setHasVotedBore(true);
   };
 
   // 닉네임 미설정 시 닉네임 입력 UI
@@ -322,32 +369,94 @@ export default function Room() {
         </div>
       )}
 
-      {videoId ? (
-        <YouTube
-          videoId={videoId}
-          opts={{
-            width: "70%",
-            height: "400",
-            playerVars: {
-              autoplay: 0,
-              controls: 1,
-              rel: 0,
-            },
-          }}
-          onReady={(event) => (playerRef.current = event.target)}
-          onPlay={onPlay}
-          onPause={onPause}
-          onStateChange={(e) => {
-            if (e.data === 1 || e.data === 2) return;
-            if (isHost) {
-              const time = e.target.getCurrentTime();
-              socket.emit("video_seek", { roomId, time });
-            }
-          }}
-        />
-      ) : (
-        <p>영상 로딩 중...</p>
+      {(
+        <div style={{ marginTop: 20 }}>
+          <input
+            type="text"
+            placeholder="유튜브 영상 URL 또는 ID 입력"
+            value={recommendInput}
+            onChange={onChangeRecommendInput}
+            style={{ width: "60%", padding: 5, fontSize: 16 }}
+          />
+          <button
+            onClick={onAddRecommendation}
+            style={{ marginLeft: 10, padding: "6px 12px", fontSize: 16 }}
+          >
+            영상 등록
+          </button>
+        </div>
       )}
+      
+
+      <div
+  style={{
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "20px",
+    marginTop: 10,
+    width: "100%",   // 부모 폭 100% 차지
+    maxWidth: 1200,  // 최대 너비 지정 (원하면)
+  }}
+>
+  {videoId ? (
+    <YouTube
+      videoId={videoId}
+      opts={{
+        width: "960",   // 고정 px 너비 (원한다면 70% 대신 px 권장)
+        height: "400",
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          rel: 0,
+        },
+      }}
+      onReady={(event) => (playerRef.current = event.target)}
+      onPlay={onPlay}
+      onPause={onPause}
+      onStateChange={(e) => {
+        if (e.data === 0) {
+          onVideoEnd();
+          return;}
+        if (e.data === 1 || e.data === 2) return;
+        if (isHost) {
+          const time = e.target.getCurrentTime();
+          socket.emit("video_seek", { roomId, time });}
+      }}
+    />
+  ) : (
+    <p>영상 로딩 중...</p>
+  )}
+
+  {/* 추천 영상목록 리스트 UI */}
+  <div
+    style={{
+      width: "300px", // 고정 px 너비
+      border: "1px solid #ccc",
+      padding: "10px",
+      height: 400,
+      overflowY: "auto",
+    }}
+  >
+    <h3>영상 등록 목록</h3>
+      {recommendQueue.length === 0 ? (
+        <p>등록된 영상이 없습니다.</p>
+      ) : (
+        <ul>
+          {recommendQueue.map((videoId, index) => (
+          <li key={videoId + index}>
+            <a
+              href={`https://www.youtube.com/watch?v=${videoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {videoId}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+</div>
 
       <div style={{ marginTop: 15 }}>
         <button onClick={() => onSkip("backward")} disabled={skipCooldown}>
@@ -359,6 +468,10 @@ export default function Room() {
           style={{ marginLeft: 10 }}
         >
           앞으로 10초 ⏩ ({skipCounts.forward})
+        </button>
+        <button onClick={handleBoreVote} disabled={hasVotedBore}
+        style={{ marginLeft: 490 }}>
+          노잼! ({boreVoteCount})
         </button>
       </div>
 
@@ -404,7 +517,6 @@ export default function Room() {
           전송
         </button>
       </div>
-
       <div style={{ marginTop: "20px" }}>
         <button onClick={() =>{
           navigate("/");
@@ -412,7 +524,6 @@ export default function Room() {
         }
           }>나가기</button>
       </div>
-
     </div>
   );
 }
