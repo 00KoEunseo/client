@@ -1,15 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import io from "socket.io-client";
 import socket from "./socket";
-
 
 export default function CreateRoom() {
   const [roomId, setRoomId] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [password, setPassword] = useState(""); // 비밀번호 상태
   const navigate = useNavigate();
 
-  // 유튜브 URL에서 videoId 추출
   const extractVideoId = (url) => {
     const regex = /(?:v=|\/)([0-9A-Za-z_-]{11})/;
     const match = url.match(regex);
@@ -27,7 +25,7 @@ export default function CreateRoom() {
       return;
     }
 
-    socket.emit("create_room", { roomId, videoId });
+    socket.emit("create_room", { roomId, videoId, password: password.trim() || null });
 
     socket.once("room_created", ({ roomId }) => {
       navigate(`/room/${roomId}`);
@@ -52,6 +50,12 @@ export default function CreateRoom() {
         placeholder="유튜브 영상 URL"
         value={youtubeUrl}
         onChange={(e) => setYoutubeUrl(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="비밀번호 (선택)"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
       <button onClick={handleCreate}>방 생성</button>
     </div>

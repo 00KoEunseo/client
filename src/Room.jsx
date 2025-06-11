@@ -27,23 +27,60 @@ export default function Room() {
 
   const chatBoxRef = useRef(null);
 
+  const [isLocked, setIsLocked] = useState(false);
+  const [roomPassword, setRoomPassword] = useState("");
+  const [passwordEntered, setPasswordEntered] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [newVideoInput, setNewVideoInput] = useState("");
+
+  // 1. 방 정보 요청 (방 잠금 여부 등)
+  useEffect(() => {
+    socket.emit("get_room_info", { roomId });
+
+    socket.once("room_info", (info) => {
+      setIsLocked(info.isLocked || false);
+    });
+
+    socket.once("error", ({ message }) => {
+      alert(message);
+      navigate("/");
+    });
+
+    return () => {
+      socket.off("room_info");
+      socket.off("error");
+    };
+  }, [roomId, navigate]);
+
+  // 2. 닉네임, 비밀번호, join_room 및 주요 socket 이벤트 등록
   useEffect(() => {
     if (!isNicknameSet) return;
+    if (isLocked && !isHost && !passwordEntered) return;
 
-    socket.emit("join_room", { roomId, nickname });
+    socket.emit("join_room", { roomId, nickname, password: roomPassword });
 
-    socket.on("room_data", ({ videoId, isHost, currentTime, isPlaying, skipCounts, usersCount, userList }) => {
-      setVideoId(videoId);
-      setIsHost(isHost);
-      setSkipCounts(skipCounts || { forward: 0, backward: 0 });
-      setUsersCount(usersCount || 0);
-      setUserList(userList || []);
-
+    socket.on("room_data", (data) => {
+      setVideoId(data.videoId);
+      setIsHost(data.isHost);
+      setSkipCounts(data.skipCounts || { forward: 0, backward: 0 });
+      setUsersCount(data.usersCount || 0);
+      setUserList(data.userList || []);
+      setIsLocked(data.isLocked || false);
+      setPasswordEntered(true);
+      setErrorMessage("");
       if (playerRef.current) {
-        playerRef.current.seekTo(currentTime || 0);
-        if (isPlaying) playerRef.current.playVideo();
+        playerRef.current.seekTo(data.currentTime || 0);
+        if (data.isPlaying) playerRef.current.playVideo();
         else playerRef.current.pauseVideo();
       }
+    });
+
+    socket.on("error", ({ message }) => {
+      setErrorMessage(message);
+      setPasswordEntered(false);
+      // 비밀번호 오류시 재입력 유도
     });
 
     socket.on("video_changed", ({ videoId, currentTime, isPlaying, skipCounts }) => {
@@ -56,13 +93,8 @@ export default function Room() {
       }
     });
 
-    socket.on("video_play", () => {
-      playerRef.current?.playVideo();
-    });
-
-    socket.on("video_pause", () => {
-      playerRef.current?.pauseVideo();
-    });
+    socket.on("video_play", () => playerRef.current?.playVideo());
+    socket.on("video_pause", () => playerRef.current?.pauseVideo());
 
     socket.on("video_seek", ({ time }) => {
       if (playerRef.current) {
@@ -73,10 +105,7 @@ export default function Room() {
       }
     });
 
-    socket.on("skip_counts_update", (counts) => {
-      setSkipCounts(counts);
-    });
-
+    socket.on("skip_counts_update", setSkipCounts);
     socket.on("user_list_update", (list) => {
       setUserList(list);
       setUsersCount(list.length);
@@ -98,6 +127,7 @@ export default function Room() {
 
     return () => {
       socket.off("room_data");
+      socket.off("error");
       socket.off("video_changed");
       socket.off("video_play");
       socket.off("video_pause");
@@ -108,32 +138,30 @@ export default function Room() {
       socket.off("room_closed");
       socket.off("request_host_time");
     };
-  }, [isHost, roomId, isNicknameSet, nickname, navigate]);
+  }, [isNicknameSet, isLocked, isHost, passwordEntered, roomId, nickname, roomPassword, navigate]);
 
-  // 호스트의 currentTime 업데이트 인터벌
+  // 3. 호스트 currentTime 업데이트 주기적 전송
   useEffect(() => {
-    let intervalId;
+    if (!isHost) return;
 
-    if (isHost) {
-      intervalId = setInterval(() => {
-        if (playerRef.current) {
-          const currentTime = playerRef.current.getCurrentTime();
-          socket.emit("host_current_time_update", { roomId, currentTime });
-        }
-      }, 1000);
-    }
+    const intervalId = setInterval(() => {
+      if (playerRef.current) {
+        const currentTime = playerRef.current.getCurrentTime();
+        socket.emit("host_current_time_update", { roomId, currentTime });
+      }
+    }, 1000);
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, [isHost, roomId]);
 
+  // 4. 채팅창 자동 스크롤
   useEffect(() => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
+  // 유튜브 영상 ID 추출
   const extractVideoId = (urlOrId) => {
     try {
       const url = new URL(urlOrId);
@@ -143,15 +171,17 @@ export default function Room() {
     }
   };
 
+  // 채팅 메시지 전송
   const sendChatMessage = () => {
     if (!chatInput.trim()) return;
     socket.emit("chat_message", { roomId, message: chatInput.trim() });
     setChatInput("");
   };
 
+  // 영상 변경 입력 처리
   const onChangeVideoInput = (e) => setNewVideoInput(e.target.value);
-  const [newVideoInput, setNewVideoInput] = useState("");
 
+  // 영상 변경 요청 (호스트만)
   const onChangeVideo = () => {
     if (!newVideoInput) return;
     const newId = extractVideoId(newVideoInput);
@@ -161,14 +191,17 @@ export default function Room() {
     setNewVideoInput("");
   };
 
+  // 영상 재생 이벤트 (호스트만)
   const onPlay = () => {
     if (isHost) socket.emit("video_play", { roomId });
   };
 
+  // 영상 일시정지 이벤트 (호스트만)
   const onPause = () => {
     if (isHost) socket.emit("video_pause", { roomId });
   };
 
+  // 영상 탐색 이벤트 (호스트만) - onStateChange에서도 호출됨
   const onSeek = (event) => {
     if (isHost) {
       const time = event.target.getCurrentTime();
@@ -176,6 +209,7 @@ export default function Room() {
     }
   };
 
+  // 10초 앞으로/뒤로 스킵 요청
   const onSkip = (direction) => {
     if (skipCooldown) return;
     socket.emit("skip_request", { roomId, direction });
@@ -183,6 +217,7 @@ export default function Room() {
     setTimeout(() => setSkipCooldown(false), 2000);
   };
 
+  // 닉네임 미설정 시 닉네임 입력 UI
   if (!isNicknameSet) {
     return (
       <div style={{ padding: 20 }}>
@@ -198,6 +233,7 @@ export default function Room() {
           onClick={() => {
             if (!nickname.trim()) return alert("닉네임을 입력하세요.");
             setIsNicknameSet(true);
+            setErrorMessage("");
           }}
           style={{ marginLeft: 10, padding: "5px 15px", fontSize: 16 }}
         >
@@ -207,7 +243,34 @@ export default function Room() {
     );
   }
 
-  return (
+  // 비밀번호 입력이 필요한 방 UI
+  if (isLocked && !isHost && !passwordEntered) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>비밀번호를 입력하세요</h2>
+        {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+        <input
+          type="password"
+          value={roomPassword}
+          onChange={(e) => setRoomPassword(e.target.value)}
+          placeholder="비밀번호"
+          style={{ padding: 5, fontSize: 16 }}
+        />
+        <button
+          onClick={() => {
+            if (!roomPassword.trim()) return alert("비밀번호를 입력하세요.");
+            setPasswordEntered(true);
+            setErrorMessage("");
+          }}
+          style={{ marginLeft: 10, padding: "5px 15px", fontSize: 16 }}
+        >
+          확인
+        </button>
+      </div>
+    );
+  }
+
+   return (
     <div
       style={{
         padding: "3vw",
