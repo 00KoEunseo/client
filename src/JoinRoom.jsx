@@ -43,9 +43,18 @@ export default function JoinRoom() {
   };
 
   return (
-    <div>
+    <div
+    style={{
+      height: "100vh",
+      width: "100vw",
+      flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+    }}
+  >
 
-      <div style={{ marginTop: "20px" }}>
+      <div style={{ marginTop: "50px" }}>
         <button onClick={() => navigate("/")}>홈으로</button>
       </div>
 

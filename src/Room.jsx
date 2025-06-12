@@ -272,7 +272,17 @@ const onVideoEnd = () => {
   // 닉네임 미설정 시 닉네임 입력 UI
   if (!isNicknameSet) {
     return (
-      <div style={{ padding: 20 }}>
+      <div
+    style={{
+      height: "100vh",
+       width: "100vw",
+      flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+        display: "flex",
+    }}
+  >
         <h2>닉네임을 입력하세요</h2>
         <input
           type="text"
@@ -298,7 +308,17 @@ const onVideoEnd = () => {
   // 비밀번호 입력이 필요한 방 UI
   if (isLocked && !isHost && !passwordEntered) {
     return (
-      <div style={{ padding: 20 }}>
+      <div
+    style={{
+      height: "100vh",
+       width: "100vw",
+      flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+        display: "flex",
+    }}
+  >
         <h2>비밀번호를 입력하세요</h2>
         {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
         <input

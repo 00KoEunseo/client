@@ -37,32 +37,44 @@ export default function CreateRoom() {
   };
 
   return (
-    <div>
+  <div
+    style={{
+      height: "100vh",
+      width: "100vw",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <h2>방 생성하기</h2>
-      <input
-        type="text"
-        placeholder="방 코드 입력"
-        value={roomId}
-        onChange={(e) => setRoomId(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="유튜브 영상 URL"
-        value={youtubeUrl}
-        onChange={(e) => setYoutubeUrl(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="비밀번호 (선택)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleCreate}>방 생성</button>
+
+      <div style={{ display: "flex", flexDirection: "row", gap: "10px", marginBottom: "10px" }}>
+        <input
+          type="text"
+          placeholder="방 코드 입력"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="유튜브 영상 URL"
+          value={youtubeUrl}
+          onChange={(e) => setYoutubeUrl(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="비밀번호 (선택)"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button onClick={handleCreate}>방 생성</button>
+      </div>
 
       <div style={{ marginTop: "20px" }}>
         <button onClick={() => navigate("/")}>홈으로</button>
       </div>
-      
     </div>
-  );
+  </div>
+);
 }
