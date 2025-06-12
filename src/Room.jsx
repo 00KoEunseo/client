@@ -194,10 +194,15 @@ export default function Room() {
   useEffect(() => {
     const pingInterval = setInterval(() => {
       socket.emit("ping");
-    }, 10000);
+    }, 10000); // 10초마다 ping
+
+    socket.on("pong", () => {
+      //console.log("Pong received from server");
+    });
 
     return () => {
       clearInterval(pingInterval);
+      socket.off("pong");
     };
   }, []);
 
