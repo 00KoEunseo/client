@@ -321,24 +321,28 @@ const onVideoEnd = () => {
       </div>
     );
   }
-
-   return (
-    <div
-      style={{
-        padding: "3vw",
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "'Segoe UI', sans-serif",
-        color: "#333",
-      }}
-    >
-      <h2>방 ID: {roomId}</h2>
-      <div>현재 인원: {usersCount}명</div>
+return (
+  <div
+    style={{
+      padding: "0vw",
+      marginLeft: 40,
+      width: "100vw",
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: "'Segoe UI', sans-serif",
+      color: "#333",
+      backgroundColor: "#ffffff", // 아이보리톤 배경
+    }}
+  >
+    <h2>방 ID: {roomId}</h2>
       <button
         onClick={() => setShowUserList(!showUserList)}
-        style={{ marginTop: 10 }}
+        style={{ marginTop: 2, width: "60%",borderRadius: 4,
+            border: "1px solid #ccc",
+            outline: "none",
+            backgroundColor: "#fff", }}
+        
       >
         {showUserList ? "인원 닫기" : "현재 인원 보기"}
       </button>
@@ -349,61 +353,92 @@ const onVideoEnd = () => {
             <li key={i}>{name}</li>
           ))}
         </ul>
-      )}
+    )}
 
-      {isHost && (
-        <div style={{ marginTop: 20 }}>
-          <input
-            type="text"
-            placeholder="유튜브 영상 URL 또는 ID 입력"
-            value={newVideoInput}
-            onChange={onChangeVideoInput}
-            style={{ width: "60%", padding: 5, fontSize: 16 }}
-          />
-          <button
-            onClick={onChangeVideo}
-            style={{ marginLeft: 10, padding: "6px 12px", fontSize: 16 }}
-          >
-            영상 변경
-          </button>
-        </div>
-      )}
+    {isHost && (
+      <div style={{ marginTop: 20 }}>
+        <input
+          type="text"
+          placeholder="유튜브 영상 URL 또는 ID 입력"
+          value={newVideoInput}
+          onChange={onChangeVideoInput}
+          style={{
+            width: "60%",
+            padding: 8,
+            fontSize: 16,
+            borderRadius: 4,
+            border: "1px solid #ccc",
+            outline: "none",
+            backgroundColor: "#fff",
+          }}
+        />
+        <button
+          onClick={onChangeVideo}
+          style={{
+            marginLeft: 10,
+            padding: "8px 16px",
+            fontSize: 16,
+            borderRadius: 4,
+            border: "none",
+            backgroundColor: "#a1a1a1",
+            color: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          영상 변경
+        </button>
+      </div>
+    )}
 
-      {(
-        <div style={{ marginTop: 20 }}>
-          <input
-            type="text"
-            placeholder="유튜브 영상 URL 또는 ID 입력"
-            value={recommendInput}
-            onChange={onChangeRecommendInput}
-            style={{ width: "60%", padding: 5, fontSize: 16 }}
-          />
-          <button
-            onClick={onAddRecommendation}
-            style={{ marginLeft: 10, padding: "6px 12px", fontSize: 16 }}
-          >
-            영상 등록
-          </button>
-        </div>
-      )}
-      
+    <div style={{ marginTop: 5 }}>
+      <input
+        type="text"
+        placeholder="유튜브 영상 URL 또는 ID 입력"
+        value={recommendInput}
+        onChange={onChangeRecommendInput}
+        style={{
+          width: "60%",
+          padding: 8,
+          fontSize: 16,
+          borderRadius: 4,
+          border: "1px solid #ccc",
+          outline: "none",
+          backgroundColor: "#fff",
+        }}
+      />
+      <button
+        onClick={onAddRecommendation}
+        style={{
+          marginLeft: 10,
+          padding: "8px 16px",
+          fontSize: 16,
+          borderRadius: 4,
+          border: "none",
+          backgroundColor: "#a1a1a1",
+          color: "#fff",
+          cursor: "pointer",
+        }}
+      >
+        영상 등록
+      </button>
+    </div>
 
-      <div
+    <div
   style={{
     display: "flex",
     alignItems: "flex-start",
-    gap: "20px",
-    marginTop: 10,
-    width: "100%",   // 부모 폭 100% 차지
-    maxWidth: 1200,  // 최대 너비 지정 (원하면)
+    gap: "30px",
+    marginTop: 20,
+    width: "100%",
+    maxWidth: 1400,
   }}
 >
   {videoId ? (
     <YouTube
       videoId={videoId}
       opts={{
-        width: "960",   // 고정 px 너비 (원한다면 70% 대신 px 권장)
-        height: "400",
+        width: "960",
+        height: "500",
         playerVars: {
           autoplay: 1,
           controls: 1,
@@ -416,89 +451,97 @@ const onVideoEnd = () => {
       onStateChange={(e) => {
         if (e.data === 0) {
           onVideoEnd();
-          return;}
+          return;
+        }
         if (e.data === 1 || e.data === 2) return;
         if (isHost) {
           const time = e.target.getCurrentTime();
-          socket.emit("video_seek", { roomId, time });}
+          socket.emit("video_seek", { roomId, time });
+        }
       }}
     />
   ) : (
     <p>영상 로딩 중...</p>
   )}
 
-  {/* 추천 영상목록 리스트 UI */}
+  {/* 영상 등록 목록 + 채팅창을 감싸는 컨테이너 */}
   <div
     style={{
-      width: "300px", // 고정 px 너비
-      border: "1px solid #ccc",
-      padding: "10px",
-      height: 400,
-      overflowY: "auto",
+      display: "flex",
+      flexDirection: "column",
+      gap: "20px",
+      width: "280px",
+      height: "480px",
     }}
   >
-    <h3>영상 등록 목록</h3>
+    {/* 영상 등록 목록 */}
+    <div
+      style={{
+        flex: "0 0 auto",
+        border: "1px solid #ccc",
+        padding: "15px",
+        height: "220px", // 높이 조절: 반절 정도 (영상 등록 목록 너무 길면 스크롤)
+        overflowY: "auto",
+        backgroundColor: "#f0f0f0",
+        borderRadius: 6,
+        color: "#555",
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: 15, color: "#444" }}>영상 등록 목록</h3>
       {recommendQueue.length === 0 ? (
         <p>등록된 영상이 없습니다.</p>
       ) : (
-        <ul>
+        <ul style={{ paddingLeft: 20 }}>
           {recommendQueue.map((videoId, index) => (
-          <li key={videoId + index}>
-            <a
-              href={`https://www.youtube.com/watch?v=${videoId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {videoId}
+            <li key={videoId + index} style={{ marginBottom: 10 }}>
+              <a
+                href={`https://www.youtube.com/watch?v=${videoId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#666", textDecoration: "none" }}
+                onMouseEnter={(e) => (e.target.style.color = "#a1a1a1")}
+                onMouseLeave={(e) => (e.target.style.color = "#666")}
+              >
+                {videoId}
               </a>
             </li>
           ))}
         </ul>
       )}
     </div>
-</div>
 
-      <div style={{ marginTop: 15 }}>
-        <button onClick={() => onSkip("backward")} disabled={skipCooldown}>
-          ⏪ 뒤로 10초 ({skipCounts.backward})
-        </button>
-        <button
-          onClick={() => onSkip("forward")}
-          disabled={skipCooldown}
-          style={{ marginLeft: 10 }}
-        >
-          앞으로 10초 ⏩ ({skipCounts.forward})
-        </button>
-        <button onClick={handleBoreVote} disabled={hasVotedBore}
-        style={{ marginLeft: 490 }}>
-          노잼! ({boreVoteCount})
-        </button>
-      </div>
-
+    {/* 채팅창 */}
+    <div
+      style={{
+        flex: "1 1 auto",
+        border: "1px solid #ccc",
+        padding: 15,
+        backgroundColor: "#fff",
+        borderRadius: 6,
+        color: "#444",
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(480px - 220px - 20px)", // 영상 등록 목록 높이 + gap 만큼 뺌
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: 15, color: "#333" }}>채팅</h3>
       <div
+        ref={chatBoxRef}
         style={{
-          marginTop: 20,
-          border: "1px solid #ccc",
-          padding: 10,
-          maxHeight: 200,
+          flex: "1 1 auto",
           overflowY: "auto",
+          marginBottom: 10,
+          paddingRight: 10,
+          color: "#333",
         }}
       >
-        <h3>채팅</h3>
-        <div
-          ref={chatBoxRef}
-          style={{
-            maxHeight: 140,
-            overflowY: "auto",
-            marginBottom: 10,
-          }}
-        >
-          {chatMessages.map((msg, i) => (
-            <div key={i} style={{ marginBottom: 4 }}>
-              <strong>{msg.nickname}</strong> | {msg.message}
-            </div>
-          ))}
-        </div>
+        {chatMessages.map((msg, i) => (
+          <div key={i} style={{ marginBottom: 6 }}>
+            <strong>{msg.nickname}</strong> | {msg.message}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex" }}>
         <input
           type="text"
           value={chatInput}
@@ -507,23 +550,106 @@ const onVideoEnd = () => {
             if (e.key === "Enter") sendChatMessage();
           }}
           placeholder="메시지를 입력하세요 (최대 10자)"
-          style={{ width: "80%", padding: 5, fontSize: 14 }}
+          style={{
+            flex: "1 1 auto",
+            padding: 8,
+            fontSize: 14,
+            borderRadius: 4,
+            border: "1px solid #ccc",
+            outline: "none",
+          }}
           maxLength={10}
         />
         <button
           onClick={sendChatMessage}
-          style={{ padding: "5px 10px", marginLeft: 8 }}
+          style={{
+            padding: "8px 16px",
+            marginLeft: 8,
+            backgroundColor: "#a1a1a1",
+            border: "none",
+            borderRadius: 4,
+            color: "#fff",
+            cursor: "pointer",
+          }}
         >
           전송
         </button>
       </div>
-      <div style={{ marginTop: "20px" }}>
-        <button onClick={() =>{
+    </div>
+  </div>
+</div>
+
+
+    <div style={{ marginTop: 5 }}>
+      <button
+        onClick={() => onSkip("backward")}
+        disabled={skipCooldown}
+        style={{
+          backgroundColor: "#d1d1d1",
+          border: "none",
+          borderRadius: 6,
+          padding: "10px 18px",
+          fontSize: 16,
+          cursor: skipCooldown ? "not-allowed" : "pointer",
+          color: "#555",
+        }}
+      >
+        ⏪ 뒤로 10초 ({skipCounts.backward})
+      </button>
+      <button
+        onClick={() => onSkip("forward")}
+        disabled={skipCooldown}
+        style={{
+          marginLeft: 15,
+          backgroundColor: "#d1d1d1",
+          border: "none",
+          borderRadius: 6,
+          padding: "10px 18px",
+          fontSize: 16,
+          cursor: skipCooldown ? "not-allowed" : "pointer",
+          color: "#555",
+        }}
+      >
+        앞으로 10초 ⏩ ({skipCounts.forward})
+      </button>
+      <button
+        onClick={handleBoreVote}
+        disabled={hasVotedBore}
+        style={{
+          marginLeft: 536,
+          backgroundColor: "#b5b5b5",
+          border: "none",
+          borderRadius: 6,
+          padding: "10px 18px",
+          fontSize: 16,
+          cursor: hasVotedBore ? "not-allowed" : "pointer",
+          color: "#fff",
+        }}
+      >
+        노잼! ({boreVoteCount})
+      </button>
+    </div>
+
+    <div style={{ marginTop: 5 }}>
+      <button
+        onClick={() => {
           navigate("/");
           outRoom();
-        }
-          }>나가기</button>
-      </div>
+        }}
+        style={{
+          padding: "10px 20px",
+          backgroundColor: "#d8d8d8",
+          border: "none",
+          borderRadius: 6,
+          cursor: "pointer",
+          color: "#555",
+          fontWeight: "bold",
+        }}
+      >
+        나가기
+      </button>
     </div>
-  );
+  </div>
+);
+
 }
