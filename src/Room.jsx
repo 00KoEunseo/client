@@ -191,6 +191,16 @@ export default function Room() {
     }
   };
 
+  useEffect(() => {
+    const pingInterval = setInterval(() => {
+      socket.emit("ping");
+    }, 10000);
+
+    return () => {
+      clearInterval(pingInterval);
+    };
+  }, []);
+
   // 인원 갱신
   const outRoom = () => {
     socket.emit("disconnect_button");
