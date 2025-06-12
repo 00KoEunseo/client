@@ -335,7 +335,7 @@ return (
       backgroundColor: "#ffffff", // 아이보리톤 배경
     }}
   >
-    <h2>방 ID: {roomId}</h2>
+    <h2>방 ID: {roomId} </h2>
       <button
         onClick={() => setShowUserList(!showUserList)}
         style={{ marginTop: 2, width: "60%",borderRadius: 4,
@@ -344,7 +344,7 @@ return (
             backgroundColor: "#fff", }}
         
       >
-        {showUserList ? "인원 닫기" : "현재 인원 보기"}
+        {showUserList ? "인원 닫기   (" : "현재 인원 보기   ("}{usersCount}명{")"}
       </button>
 
       {showUserList && (
@@ -437,7 +437,7 @@ return (
     <YouTube
       videoId={videoId}
       opts={{
-        width: "960",
+        width: "888",
         height: "500",
         playerVars: {
           autoplay: 1,
@@ -616,7 +616,7 @@ return (
         onClick={handleBoreVote}
         disabled={hasVotedBore}
         style={{
-          marginLeft: 536,
+          marginLeft: 465,
           backgroundColor: "#b5b5b5",
           border: "none",
           borderRadius: 6,
